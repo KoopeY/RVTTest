@@ -1,26 +1,16 @@
 package service;
 
+import interfaces.IAccountService;
 import model.Account;
+import model.exception.AccountNotFoundException;
 import model.exception.AccountOperationException;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.Persistence;
 
-public class AccountService {
-    private static AccountService accountService = null;
+public class AccountService implements IAccountService {
     private EntityManager em = Persistence.createEntityManagerFactory("ACCOUNT").createEntityManager();
-
-    public static AccountService getInstance() {
-        if (accountService == null) {
-            synchronized (AccountService.class) {
-                if (accountService == null) {
-                    accountService = new AccountService();
-                }
-            }
-        }
-
-        return accountService;
-    }
 
     public Account create(String number, Double balance) {
         Account account = Account.builder()
@@ -35,7 +25,7 @@ public class AccountService {
         return account;
     }
 
-    public Account deposit(String number, Double sum) {
+    public Account deposit(String number, Double sum) throws AccountNotFoundException {
         Account account = getAccount(number);
 
         if (account != null) {
@@ -48,7 +38,7 @@ public class AccountService {
         return account;
     }
 
-    public Account withdraw(String number, Double sum) throws AccountOperationException {
+    public Account withdraw(String number, Double sum) throws AccountOperationException, AccountNotFoundException {
         Account account = getAccount(number);
 
         if (account != null) {
@@ -61,13 +51,27 @@ public class AccountService {
         return account;
     }
 
-    public void transfer(String from, String to, Double sum) {
+    public Account transfer(String from, String to, Double sum) throws AccountOperationException, AccountNotFoundException {
+        Account fromAccount = getAccount(from);
+        Account toAccount = getAccount(to);
 
+        if (fromAccount != null && toAccount != null) {
+            em.getTransaction().begin();
+            fromAccount.withdraw(sum);
+            toAccount.deposit(sum);
+            em.getTransaction().commit();
+        }
+
+        return toAccount;
     }
 
-    private Account getAccount(String account) {
-        return (Account)em.createQuery("SELECT a FROM Account a WHERE a.account = :account")
-                .setParameter("account", account)
-                .getSingleResult();
+    private Account getAccount(String account) throws AccountNotFoundException {
+        try {
+            return (Account) em.createQuery("SELECT a FROM Account a WHERE a.account = :account")
+                    .setParameter("account", account)
+                    .getSingleResult();
+        } catch(NoResultException e) {
+            throw new AccountNotFoundException(account, String.format("Not found: account = %s", account));
+        }
     }
 }
