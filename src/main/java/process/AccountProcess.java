@@ -2,12 +2,15 @@ package process;
 
 import interfaces.IAccountProcess;
 import interfaces.IAccountService;
+import lombok.Builder;
+import lombok.Data;
 import model.exception.AccountNotFoundException;
 import model.exception.AccountOperationException;
 import spark.Request;
 import spark.Response;
 
 import javax.inject.Inject;
+import java.util.concurrent.Callable;
 
 public class AccountProcess implements IAccountProcess {
     private final IAccountService accountService;
@@ -20,51 +23,69 @@ public class AccountProcess implements IAccountProcess {
     public String create(Request request, Response response) {
         String number = request.params("number");
         Double sum = Double.parseDouble(request.queryParams("sum"));
+
+        ProcessResult result = process(() -> accountService.create(number, sum));
         response.status(201);
-        return accountService.create(number, sum).toString();
+        return result.getMessage();
     }
 
     public String deposit(Request request, Response response) {
         String number = request.params("number");
         Double sum = Double.parseDouble(request.queryParams("sum"));
-        response.status(200);
-        try {
-            return accountService.deposit(number, sum).toString();
-        } catch (AccountNotFoundException e) {
-            response.status(404);
-            return String.format("Catch exception: %s", e.getMessage());
-        }
+
+        ProcessResult result = process(() -> accountService.deposit(number, sum));
+        response.status(result.getStatus());
+        return result.getMessage();
     }
 
     public String withdraw(Request request, Response response) {
         String number = request.params("number");
         Double sum = Double.parseDouble(request.queryParams("sum"));
 
-        try {
-            response.status(200);
-            return accountService.withdraw(number, sum).toString();
-        } catch (AccountOperationException e) {
-            response.status(400);
-            return String.format("Catch exception: %s", e.getMessage());
-        } catch (AccountNotFoundException e) {
-            response.status(404);
-            return String.format("Catch exception: %s", e.getMessage());
-        }
+        ProcessResult result = process(() -> accountService.withdraw(number, sum));
+        response.status(result.getStatus());
+        return result.getMessage();
     }
 
     public String transfer(Request request, Response response) {
         String from = request.params("from");
         String to = request.params("to");
         Double sum = Double.parseDouble(request.queryParams("sum"));
+
+        ProcessResult result = process(() -> accountService.transfer(from, to, sum));
+        response.status(result.getStatus());
+        return result.getMessage();
+    }
+
+    private ProcessResult process(Callable callable) {
         try {
-            response.status(200);
-            return accountService.transfer(from, to, sum).toString();
-        } catch (AccountOperationException e) {
-            response.status(400);
-            return String.format("Catch exception: %s", e.getMessage());
+            return ProcessResult.builder()
+                    .message(callable.call().toString())
+                    .status(200)
+                    .build();
         } catch (AccountNotFoundException e) {
-            response.status(404);
-            return String.format("Catch exception: %s", e.getMessage());
+            return ProcessResult.builder()
+                    .message(String.format("Catch exception: %s", e.getMessage()))
+                    .status(404)
+                    .build();
+        } catch (AccountOperationException e) {
+                return ProcessResult.builder()
+                    .message(String.format("Catch exception: %s", e.getMessage()))
+                    .status(400)
+                    .build();
+        } catch (Exception e) {
+            return ProcessResult.builder()
+                    .message(String.format("Catch exception: %s", e.getMessage()))
+                    .status(500)
+                    .build();
+
         }
     }
+}
+
+@Data
+@Builder
+class ProcessResult {
+    private String message;
+    private Integer status;
 }
