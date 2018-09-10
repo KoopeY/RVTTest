@@ -1,5 +1,5 @@
 package enums;
 
 public enum AccountOperationEnum {
-    DEPOSIT, WITHDRAW, TRANSFER
+    CREATE, DEPOSIT, WITHDRAW, TRANSFER
 }

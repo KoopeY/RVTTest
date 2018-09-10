@@ -20,6 +20,12 @@ public class AccountProcess implements IAccountProcess {
         this.accountService = accountService;
     }
 
+    /**
+     * Create account
+     * @param request
+     * @param response
+     * @return operation result
+     */
     public String create(Request request, Response response) {
         String number = request.params("number");
         Double sum = Double.parseDouble(request.queryParams("sum"));
@@ -29,6 +35,12 @@ public class AccountProcess implements IAccountProcess {
         return result.getMessage();
     }
 
+    /**
+     * Deposit to account
+     * @param request
+     * @param response
+     * @return operation result
+     */
     public String deposit(Request request, Response response) {
         String number = request.params("number");
         Double sum = Double.parseDouble(request.queryParams("sum"));
@@ -38,6 +50,12 @@ public class AccountProcess implements IAccountProcess {
         return result.getMessage();
     }
 
+    /**
+     * Withdraw from account
+     * @param request
+     * @param response
+     * @return operation result
+     */
     public String withdraw(Request request, Response response) {
         String number = request.params("number");
         Double sum = Double.parseDouble(request.queryParams("sum"));
@@ -47,6 +65,12 @@ public class AccountProcess implements IAccountProcess {
         return result.getMessage();
     }
 
+    /**
+     * Transfer between accounts
+     * @param request
+     * @param response
+     * @return operation result
+     */
     public String transfer(Request request, Response response) {
         String from = request.params("from");
         String to = request.params("to");

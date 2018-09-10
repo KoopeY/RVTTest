@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import service.AccountOperation;
 import service.AccountService;
 
 import javax.inject.Inject;
@@ -28,9 +29,11 @@ public class TestAccountApplication {
     @Inject
     private AccountService accountService;
 
+    @Inject
+    private AccountOperation accountOperation;
+
     @Before
     public void init() {
-        logger.info("Start tests");
         Injector injector = Guice.createInjector(new DiModule());
         injector.getInstance(TestAccountApplication.class);
         em = Persistence.createEntityManagerFactory("ACCOUNT").createEntityManager();
@@ -39,11 +42,27 @@ public class TestAccountApplication {
     @After
     public void finish() {
         em.close();
-        logger.info("Finish tests");
     }
 
     @Test
-    public void create_accountA_sum100_thenOk() {
+    public void deposit_balance10_plus15_result25_thenOk() {
+        Double balance = accountOperation.deposit(10D, 15D);
+        Assert.assertEquals(balance, 25D, DELTA);
+    }
+
+    @Test
+    public void withdraw_balance10_minus5_result5_thenOk() throws AccountOperationException {
+        Double balance = accountOperation.withdraw(10D, 5D);
+        Assert.assertEquals(balance, 5D, DELTA);
+    }
+
+    @Test(expected = AccountOperationException.class)
+    public void withdraw_balance10_minus15_thenOperationException() throws AccountOperationException {
+        accountOperation.withdraw(10D, 15D);
+    }
+
+    @Test
+    public void create_accountA_sum100_thenOk() throws AccountOperationException {
         accountService.create("A", 100D);
         Account dbAccount = (Account) em.createQuery("SELECT a FROM Account a WHERE a.account = :account")
                 .setParameter("account", "A")
@@ -54,7 +73,7 @@ public class TestAccountApplication {
     }
 
     @Test
-    public void deposit_accountB_sum50_thenOk() throws AccountNotFoundException {
+    public void deposit_accountB_sum50_thenOk() throws AccountNotFoundException, AccountOperationException {
         accountService.create("B", 0D);
         accountService.deposit("B", 50D);
         Account dbAccount = (Account) em.createQuery("SELECT a FROM Account a WHERE a.account = :account")
@@ -94,5 +113,18 @@ public class TestAccountApplication {
         Assert.assertEquals(fromAccount.getBalance(), 5D, DELTA);
         Assert.assertEquals(toAccount.getAccount(), "E");
         Assert.assertEquals(toAccount.getBalance(), 40D, DELTA);
+    }
+
+    @Test(expected = AccountOperationException.class)
+    public void transfer_accountF_toG_sum25_thenOperationException() throws AccountOperationException, AccountNotFoundException {
+        accountService.create("F", 30D);
+        accountService.create("G", 15D);
+        accountService.transfer("F", "G", 40D);
+    }
+
+    @Test(expected = AccountNotFoundException.class)
+    public void transfer_accountH_toI_sum25_thenNotFoundException() throws AccountOperationException, AccountNotFoundException {
+        accountService.create("HI", 15D);
+        accountService.transfer("H", "I", 10D);
     }
 }

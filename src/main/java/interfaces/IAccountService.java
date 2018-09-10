@@ -5,7 +5,7 @@ import model.exception.AccountNotFoundException;
 import model.exception.AccountOperationException;
 
 public interface IAccountService {
-    Account create(String number, Double balance);
+    Account create(String number, Double balance) throws AccountOperationException;
     Account deposit(String number, Double sum) throws AccountNotFoundException;
     Account withdraw(String number, Double sum) throws AccountOperationException, AccountNotFoundException;
     Account transfer(String from, String to, Double sum) throws AccountOperationException, AccountNotFoundException;
